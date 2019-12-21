@@ -1,0 +1,106 @@
+---
+title: "main"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(httr)
+library(xml2)
+library(lubridate)
+library(XML)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gganimate)
+```
+
+## Zhihu Hot data collection
+
+The purpose of this document is to present Zhihu-hot, a project dedicated to crawl and analyze Zhihu hot ranking data.
+
+```{r}
+add_headers(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36")
+record<-function(){
+web<-GET("https://www.zhihu.com",
+    add_headers(Cookie=''))
+
+page<-content(web)
+write_html(page,file="w.html")
+hot<-read_html("w.html")
+hotitem<-xml_find_all(hot,".//section")
+all_url<-vector()
+all_question<-vector()
+all_hot<-vector()
+for(i in 1:50){
+  this<-hotitem[[i]]
+  thiss<-xml_child(this,2)
+  qnode<-xml_child(thiss,1)
+  question<-xml_attr(qnode,"title")
+  q_url<-xml_attr(qnode,"href")
+  hotnode<-xml_child(thiss,2)
+  hotval<-xml_text(hotnode)
+  all_url<-append(all_url,q_url)
+  all_hot<-append(all_hot,hotval)
+  all_question<-append(all_question,question)
+}
+data.frame(url=all_url,hot=all_hot,question=all_question,time=rep(now(),50),stringsAsFactors = F)}
+```
+
+The function defined above will collect the Zhihu hot ranking data to a dataframe.(in order to run the code, please put your Zhihu account's cookie in the add_headers() statement)
+
+```{r eval=F}
+all_res<-data.frame(url=c(),hot=c(),question=c(),time=c(),stringsAsFactors = F)
+i=0
+while(T){
+  i=i+1
+  all_res<-bind_rows(all_res,record())
+  Sys.sleep(60)
+  print(i)
+}
+saveRDS(all_res,"data.txt")
+```
+
+This will continuously collect data each minute until you stop it, and all data can be saved in a file.
+
+## Analysis and Visualization
+
+```{r}
+all_res<-readRDS("data.txt")
+ress<-all_res%>%
+  mutate(hot=as.double(str_extract(hot,"\\d+")))
+start<-ress$time[[1]]
+ress<-ress%>%
+  mutate(interv=as.double(as.duration(time-start)))
+resss<-ress%>%
+    group_by(interv)%>%
+    mutate(RNK=rank(hot, ties.method= "first"))%>%
+    ungroup()%>%
+    filter(RNK>29)%>%
+  mutate(time=with_tz(time,"Asia/Shanghai"))
+animate(
+  resss%>%
+  ggplot()+
+    geom_col(aes(x=RNK,y=hot,fill=url),show.legend = FALSE,width = 1,na.rm=F)+
+    geom_text(aes(x=RNK,y=mean(hot)*0.6,label=question))+
+    transition_time(time)+
+    coord_flip()+
+    scale_y_log10()+
+    ease_aes('linear')+
+    labs(title="{with_tz(frame_time,\"Asia/Shanghai\")}"),
+    nframes=1000,fps=20
+)
+```
+
+This is an animation of the top ranking questions in the indicated time range(Pay close attention to the 251 question)
+
+```{r}
+resss%>%
+  filter(RNK>40)%>%
+  ggplot()+
+  geom_line(aes(interv,hot,color=url),show.legend=F)+
+  scale_y_log10()
+```
+
+The question corresponding the purple curve is **如何评价华为回应李洪元被羁押 251 天：支持其运用法律武器维权？**
+
+

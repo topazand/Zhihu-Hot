@@ -1,0 +1,146 @@
+---
+title: "test"
+output: html_document
+---
+Include the library: Rvest
+```{r}
+library(rvest)
+library(httr)
+library(xml2)
+library(lubridate)
+library(XML)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(gganimate)
+```
+
+```{r}
+web<-GET("https://www.zhihu.com/hot",
+    add_headers(Cookie='_zap=ba028697-f45c-47ee-9bf4-60902141a949; d_c0=\"AHBvJBT_cRCPTs3sDJ-iFixOV72xVx-OigE=|1575308075\"; capsion_ticket=\"2|1:0|10:1575308079|14:capsion_ticket|44:Y2FiM2Q5ODE2ZmUwNDI0OTg1MDdlMzZiMzc3MDY5NzQ=|d5c2634ba53485e19ef6384d22fc883cc127784daeae732eb66cefdbabb8fb74\"; z_c0=\"2|1:0|10:1575308080|4:z_c0|92:Mi4xa2NtRUF3QUFBQUFBY0c4a0ZQOXhFQ1lBQUFCZ0FsVk5NSm5TWGdBM1NKU0kzSFRfVDZuR3BuVi1va2lIUTZGcGt3|7f3cf33518b7eda83d1b88360004ec805b23021ec18821bdb04cb5dd63bb87f6\"; tshl=; tst=h; _xsrf=ILBlhPraMwjZifSYLerLYEGZGOLTlv1w; q_c1=081981cdff5447c58c0a152b2c24f7bd|1575336846000|1575336846000; Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49=1575309663,1575336591,1575336973,1575337062; tgw_l7_route=d9073c2db8fd446afafd830a80e5db8c; Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49=1575338283'))
+
+page<-content(web)
+write_html(page,file="w.html")
+# form<- html_form(ses)[[1]]
+#form$fields
+# filled_form<-set_values(form,
+#                         username="15601056548",
+#                         password="yyyttt"
+#                         )
+# sbmt<-submit_form(ses,filled_form)
+```
+
+```{r}
+res<-GET(site, set_cookies(Cookie="_zap=ba028697-f45c-47ee-9bf4-60902141a949; _xsrf=6196b82d-c56d-4860-9638-361760118cc2; d_c0=\"AHBvJBT_cRCPTs3sDJ-iFixOV72xVx-OigE=|1575308075\"; tshl=; tst=h; tgw_l7_route=fd63c3ae6724333eae94c71ab6d69628; Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49=1575306056,1575306183,1575306997,1575309264; Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49=1575309264"))
+#typeof(res)
+
+```
+```{r}
+library(XML)
+```
+
+```{r}
+record<-function(){
+web<-GET("https://www.zhihu.com/hot",
+    add_headers(Cookie='_zap=ba028697-f45c-47ee-9bf4-60902141a949; d_c0=\"AHBvJBT_cRCPTs3sDJ-iFixOV72xVx-OigE=|1575308075\"; capsion_ticket=\"2|1:0|10:1575308079|14:capsion_ticket|44:Y2FiM2Q5ODE2ZmUwNDI0OTg1MDdlMzZiMzc3MDY5NzQ=|d5c2634ba53485e19ef6384d22fc883cc127784daeae732eb66cefdbabb8fb74\"; z_c0=\"2|1:0|10:1575308080|4:z_c0|92:Mi4xa2NtRUF3QUFBQUFBY0c4a0ZQOXhFQ1lBQUFCZ0FsVk5NSm5TWGdBM1NKU0kzSFRfVDZuR3BuVi1va2lIUTZGcGt3|7f3cf33518b7eda83d1b88360004ec805b23021ec18821bdb04cb5dd63bb87f6\"; tshl=; tst=h; _xsrf=ILBlhPraMwjZifSYLerLYEGZGOLTlv1w; q_c1=081981cdff5447c58c0a152b2c24f7bd|1575336846000|1575336846000; Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49=1575309663,1575336591,1575336973,1575337062; tgw_l7_route=d9073c2db8fd446afafd830a80e5db8c; Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49=1575338283'))
+
+page<-content(web)
+write_html(page,file="w.html")
+hot<-read_html("w.html")
+hotitem<-xml_find_all(hot,".//section")
+all_url<-vector()
+all_question<-vector()
+all_hot<-vector()
+for(i in 1:50){
+  this<-hotitem[[i]]
+  thiss<-xml_child(this,2)
+  qnode<-xml_child(thiss,1)
+  question<-xml_attr(qnode,"title")
+  q_url<-xml_attr(qnode,"href")
+  hotnode<-xml_child(thiss,2)
+  hotval<-xml_text(hotnode)
+  all_url<-append(all_url,q_url)
+  all_hot<-append(all_hot,hotval)
+  all_question<-append(all_question,question)
+}
+data.frame(url=all_url,hot=all_hot,question=all_question,time=rep(now(),50),stringsAsFactors = F)}
+
+```
+
+```{r main}
+all_res<-data.frame(url=c(),hot=c(),question=c(),time=c(),stringsAsFactors = F)
+i=0
+while(T){
+  i=i+1
+  all_res<-bind_rows(all_res,record())
+  Sys.sleep(60)
+  print(i)
+}
+saveRDS(all_res,"data.txt")
+```
+```{r}
+t<-ress%>%
+  filter(str_detect(question,"华为"))%>%
+  select(-url,-time)%>%
+  spread(question,hot)
+colnames(t)
+ggplot(t)+
+  geom_line(aes(interv,get("华为方舟编译器的开源是否达到了你的预期？")))+
+  geom_line(aes(interv,get("如何评价华为回应李洪元被羁押 251 天：支持其运用法律武器维权？")))+
+  geom_line(aes(interv,get("如何评价李洪元回应华为声明：大家看看先，我听全国人民的？")))
+
+```
+
+
+
+```{r}
+ress<-all_res%>%
+  mutate(hot=as.double(str_extract(hot,"\\d+")))
+```
+
+```{r}
+start<-ress$time[[1]]
+ress<-ress%>%
+  mutate(interv=as.double(as.duration(time-start)))
+```
+
+
+```{r}
+resss<-ress%>%
+    group_by(interv)%>%
+    mutate(RNK=rank(hot, ties.method= "first"))%>%
+    ungroup()%>%
+    filter(RNK>29)%>%
+  mutate(time=with_tz(time,"Asia/Shanghai"))
+```
+
+```{r}
+#str_extract(url,"\\d+$")
+this<-animate(
+  resss%>%
+  ggplot()+
+    geom_col(aes(x=RNK,y=hot,fill=url),show.legend = FALSE,width = 1,na.rm=F)+
+    geom_text(aes(x=RNK,y=mean(hot)*0.6,label=question))+
+    transition_time(time)+
+    coord_flip()+
+    scale_y_log10()+
+    ease_aes('linear')+
+    labs(title="{with_tz(frame_time,\"Asia/Shanghai\")}"),
+    nframes=10,fps=20
+)
+```
+```{r}
+resss%>%
+  filter(RNK>40)%>%
+  ggplot()+
+  geom_line(aes(interv,hot,color=url),show.legend=F)+
+  scale_y_log10()
+```
+
+```{r}
+resss%>%
+  group_by(url,question)%>%
+  
+  
+```
+
